@@ -4,6 +4,52 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── PolicySync Design System ─────────────────────────────────────────── */
+:root {
+  --ps-primary: #00478d;
+  --ps-primary-container: #005eb8;
+  --ps-secondary: #795900;
+  --ps-secondary-container: #ffbf00;
+  --ps-secondary-fixed: #ffdfa0;
+  --ps-tertiary: #3d485b;
+  --ps-surface: #f7fafc;
+  --ps-surface-container-lowest: #ffffff;
+  --ps-surface-container-low: #f1f4f6;
+  --ps-surface-container: #ebeef0;
+  --ps-surface-container-high: #e5e9eb;
+  --ps-on-background: #181c1e;
+  --ps-on-surface: #181c1e;
+  --ps-on-surface-variant: #424752;
+  --ps-outline-variant: #c2c6d4;
+  --ps-error-container: #ffdad6;
+  --ps-on-error-container: #93000a;
+}
+
+body {
+  font-family: 'Inter', var(--font-sans), sans-serif;
+  background-color: var(--ps-surface);
+  color: var(--ps-on-background);
+}
+
+.font-headline {
+  font-family: 'Manrope', sans-serif;
+}
+
+.glass-nav {
+  background: rgba(247, 250, 252, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--ps-primary), var(--ps-primary-container));
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
