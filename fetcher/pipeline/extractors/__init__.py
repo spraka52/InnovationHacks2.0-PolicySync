@@ -1,4 +1,4 @@
-"""Payer-specific extraction agents for the RxMonitor pipeline."""
+"""Payer-specific extraction agents for the PolicySync pipeline."""
 
 from .uhc import extract as uhc_extract
 from .cigna import extract as cigna_extract

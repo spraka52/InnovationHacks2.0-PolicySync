@@ -1,5 +1,5 @@
 """
-RxMonitor Fetcher Microservice
+PolicySync Fetcher Microservice
 FastAPI service responsible for:
 1. Fetching artifacts from all 5 real source types
 2. Extracting text with pdfplumber / BeautifulSoup
@@ -33,7 +33,7 @@ _root = Path(__file__).parent.parent
 load_dotenv(_root / ".env.local")
 load_dotenv(_root / ".env", override=False)
 
-app = FastAPI(title="RxMonitor Fetcher", version="1.0.0")
+app = FastAPI(title="PolicySync Fetcher", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -80,10 +80,7 @@ def verify_secret(x_api_secret: str = Header(...)):
 # ---------------------------------------------------------------------------
 
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (compatible; RxMonitor/1.0; "
-        "+https://rxmonitor.app/bot)"
-    ),
+    "User-Agent": "Mozilla/5.0 (compatible; PolicySync-Fetcher/1.0)",
     "Accept": "text/html,application/xhtml+xml,application/pdf,*/*",
 }
 
@@ -616,4 +613,4 @@ async def embed_text(req: EmbedRequest):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "rxmonitor-fetcher"}
+    return {"status": "ok", "service": "policysync-fetcher"}

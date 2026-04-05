@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth0 } from "@/lib/auth0";
+import { auth0, AUTH0_ROLES_CLAIM } from "@/lib/auth0";
 import type { UserRole } from "@/types";
-
-const ROLE_NAMESPACE = "https://rxmonitor.app/roles";
 
 /** Routes and the minimum role required to access them */
 const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRole }> = [
@@ -25,16 +23,11 @@ function meetsRole(userRoles: UserRole[], required: UserRole): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public routes
+  // Allow public routes (landing + auth callback + health check)
   if (
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/search") ||
-    pathname.startsWith("/api/qa") ||
-    pathname.startsWith("/api/changelog") ||
     pathname === "/api/health" ||
     pathname === "/" ||
-    pathname === "/search" ||
-    pathname === "/changelog" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
   ) {
@@ -59,7 +52,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/api/auth/login", req.url));
     }
 
-    const userRoles: UserRole[] = (session.user[ROLE_NAMESPACE] as UserRole[]) ?? [];
+    const userRoles: UserRole[] = (session.user[AUTH0_ROLES_CLAIM] as UserRole[]) ?? [];
 
     // Check if route requires a specific role
     const routeGuard = PROTECTED_ROUTES.find(({ pattern }) => pattern.test(pathname));

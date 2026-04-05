@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import { Send, Loader2, BookOpen, ChevronDown, ChevronUp, Bot, ExternalLink, AlertTriangle, Info } from "lucide-react";
 import type { QAResponse } from "@/types";
 
@@ -237,6 +238,20 @@ export function QAInterface() {
             <div>
               <p className="text-sm font-semibold text-gray-700">Ask about any drug or payer policy</p>
               <p className="text-xs text-gray-400 mt-1">Get direct answers with citations from extracted policy data</p>
+              <p className="text-xs text-slate-500 mt-3 max-w-md leading-relaxed">
+                For <span className="font-medium text-slate-600">recent coverage changes across payers</span>, use the{" "}
+                <Link
+                  href="/search?tab=changes"
+                  className="font-semibold text-[#00478d] hover:underline"
+                >
+                  Recent updates
+                </Link>{" "}
+                tab (or{" "}
+                <Link href="/changelog" className="font-semibold text-[#00478d] hover:underline">
+                  full history
+                </Link>
+                ).
+              </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center max-w-lg">
               {EXAMPLE_QUESTIONS.map((q) => (
@@ -314,7 +329,12 @@ export function QAInterface() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
-        <p className="text-xs text-gray-400 text-center">Enter to send · Shift+Enter for new line</p>
+        <p className="text-xs text-gray-400 text-center">
+          Enter to send · Shift+Enter for new line ·{" "}
+          <Link href="/search?tab=changes" className="text-[#00478d] hover:underline font-medium">
+            Recent changes across payers → Recent updates tab
+          </Link>
+        </p>
       </div>
     </div>
   );

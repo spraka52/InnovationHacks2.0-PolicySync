@@ -27,6 +27,11 @@ const GROQ_KEYS = [
   process.env.GROQ_API_KEY_2 ?? "",
 ].filter(Boolean);
 
+/** Top cosine similarity (HyDE + `search_published_rules`) vs `published_rules.embedding` — empirically tuned for 768-d embeddings. */
+const QA_SIM_HIGH = 0.6;
+/** At or above: "medium" confidence; also minimum sim to show citations when question has no payer/drug keyword. */
+const QA_SIM_MEDIUM = 0.35;
+
 async function callGroqKey(apiKey: string, model: string, prompt: string): Promise<{ ok: boolean; text?: string; rateLimited?: boolean }> {
   const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -175,6 +180,25 @@ function extractFilters(question: string): { payers: string[]; drug: string | nu
   }
 
   return { payers: [...payersSeen], drug };
+}
+
+/** Collapse retrieval duplicates: same payer + drug + policy # can appear as multiple rows. */
+function dedupeRulesByDisplaySource(rules: PublishedRule[]): PublishedRule[] {
+  const seen = new Set<string>();
+  const out: PublishedRule[] = [];
+  for (const r of rules) {
+    const j = r.rule_json;
+    const policy = (j.policy_number ?? "").trim().toLowerCase();
+    const key = [
+      (j.payer_name ?? "").trim().toLowerCase(),
+      (j.drug_name ?? "").trim().toLowerCase(),
+      policy,
+    ].join("\u0001");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
 }
 
 // ── Q&A response cache (Supabase qa_cache table) ─────────────────────────────
@@ -345,10 +369,12 @@ export async function POST(req: NextRequest) {
     } satisfies QAResponse);
   }
 
+  const uniqueRules = dedupeRulesByDisplaySource(rules);
+
   // ── Step 3: LLM answer synthesis (Gemini → Groq fallback) ───────────────
   let answer = "";
   try {
-    const prompt = buildAnswerPrompt(question, rules);
+    const prompt = buildAnswerPrompt(question, uniqueRules);
     answer = await synthesizeAnswer(prompt);
   } catch (err) {
     console.error(`[qa] Both Gemini and Groq failed:`, err);
@@ -358,38 +384,45 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Step 4: Build structured citations ───────────────────────────────────
-  // If no drug or payer was extracted from the question, the vector search may
-  // have returned weakly-related results. Suppress citations in that case so
-  // an off-topic question (e.g. "capital of France") doesn't show policy pills.
+  // ── Step 4: Build structured citations + confidence ───────────────────────
+  // "Off-topic" = no payer/drug keyword — we still retrieve by embedding, but we only
+  // show citations when the user named entities OR vector similarity is strong enough
+  // (same floor as QA_SIM_MEDIUM) to avoid random pills on unrelated questions.
   const isOffTopic = filterDrug === null && filterPayers.length === 0;
+  const showPolicyContext =
+    !isOffTopic ||
+    (topSimilarity !== null && topSimilarity >= QA_SIM_MEDIUM);
 
-  const citations: QAResponse["citations"] = isOffTopic ? [] : rules.slice(0, 5).map((r) => {
-    const rule = r.rule_json;
-    const firstCitation = rule.citations?.[0];
-    return {
-      payer_name: rule.payer_name,
-      policy_number: rule.policy_number ?? null,
-      drug_name: rule.drug_name,
-      page: firstCitation?.page ?? null,
-      section: firstCitation?.section ?? null,
-      text_snippet: firstCitation?.text_snippet ?? `${rule.drug_name} — ${rule.coverage_tier}`,
-    };
-  });
+  const citations: QAResponse["citations"] = showPolicyContext
+    ? uniqueRules.slice(0, 5).map((r) => {
+        const rule = r.rule_json;
+        const firstCitation = rule.citations?.[0];
+        return {
+          payer_name: rule.payer_name,
+          policy_number: rule.policy_number ?? null,
+          drug_name: rule.drug_name,
+          page: firstCitation?.page ?? null,
+          section: firstCitation?.section ?? null,
+          text_snippet: firstCitation?.text_snippet ?? `${rule.drug_name} — ${rule.coverage_tier}`,
+        };
+      })
+    : [];
 
+  // Confidence follows retrieval strength (HyDE + vector sim), not keyword presence.
   const confidence: QAResponse["confidence"] =
-    isOffTopic ? "low"
-    : topSimilarity === null ? "low"
-    : topSimilarity >= 0.6 ? "high"
-    : topSimilarity >= 0.4 ? "medium"
+    topSimilarity === null ? "low"
+    : topSimilarity >= QA_SIM_HIGH ? "high"
+    : topSimilarity >= QA_SIM_MEDIUM ? "medium"
     : "low";
 
-  console.log(`[qa] confidence=${confidence} top_similarity=${topSimilarity?.toFixed(3) ?? "n/a"} off_topic=${isOffTopic}`);
+  console.log(
+    `[qa] confidence=${confidence} top_similarity=${topSimilarity?.toFixed(3) ?? "n/a"} thresholds high=${QA_SIM_HIGH} medium=${QA_SIM_MEDIUM} off_topic=${isOffTopic} show_citations=${showPolicyContext}`
+  );
 
   const responsePayload: QAResponse = {
     answer,
     citations,
-    rules_used: isOffTopic ? [] : rules,
+    rules_used: showPolicyContext ? uniqueRules : [],
     confidence,
     top_similarity: topSimilarity,
   };

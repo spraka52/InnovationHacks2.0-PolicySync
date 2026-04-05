@@ -194,7 +194,7 @@ export function ChangeDiff({ compact = false }: { compact?: boolean }) {
 
   useEffect(() => { load(); }, [onlyClinical]); // eslint-disable-line
 
-  // ── Compact strip (Search > Policy Changes tab) ───────────────────────────
+  // ── Compact strip (Search > Recent updates tab) ───────────────────────────
   if (compact) {
     if (loading) return <div className="text-sm text-slate-400 py-2">Loading changes...</div>;
     if (loadError)

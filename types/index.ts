@@ -198,7 +198,7 @@ export interface QAResponse {
     text_snippet: string;
   }>;
   rules_used: PublishedRule[];
-  /** Confidence based on top vector similarity score from retrieval step */
+  /** Confidence from top vector similarity (retrieval), not keyword presence */
   confidence: "high" | "medium" | "low";
   /** Raw top similarity score (0–1); null when keyword fallback was used */
   top_similarity: number | null;

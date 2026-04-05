@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, TrendingUp, LogIn, BarChart2, Search } from "lucide-react";
 import { getServiceClient } from "@/lib/supabase";
-import { auth0 } from "@/lib/auth0";
+import { auth0, AUTH0_ROLES_CLAIM } from "@/lib/auth0";
 import type { UserRole } from "@/types";
-
-const ROLE_NAMESPACE = "https://rxmonitor.app/roles";
 
 async function getStats() {
   try {
@@ -33,7 +31,7 @@ export default async function HomePage() {
     const session = await auth0.getSession();
     if (session?.user) {
       isAuthenticated = true;
-      roles = (session.user[ROLE_NAMESPACE] as UserRole[]) ?? [];
+      roles = (session.user[AUTH0_ROLES_CLAIM] as UserRole[]) ?? [];
     }
   } catch {
     // not authenticated
@@ -144,7 +142,7 @@ export default async function HomePage() {
               <div className="h-8 w-8 rounded-lg bg-[#e8f0fe] flex items-center justify-center">
                 <Search className="h-4 w-4 text-[#00478d]" />
               </div>
-              <span className="font-bold text-slate-800 text-sm group-hover:text-[#00478d] transition-colors">Ask a Question</span>
+              <span className="font-bold text-slate-800 text-sm group-hover:text-[#00478d] transition-colors">Q&amp;A</span>
             </div>
             <p className="text-xs text-slate-500">Ask about any drug policy — get direct answers with citations from extracted data.</p>
           </Link>
@@ -153,7 +151,7 @@ export default async function HomePage() {
               <div className="h-8 w-8 rounded-lg bg-[#e8f0fe] flex items-center justify-center">
                 <BarChart2 className="h-4 w-4 text-[#00478d]" />
               </div>
-              <span className="font-bold text-slate-800 text-sm group-hover:text-[#00478d] transition-colors">Compare Policies</span>
+              <span className="font-bold text-slate-800 text-sm group-hover:text-[#00478d] transition-colors">Compare</span>
             </div>
             <p className="text-xs text-slate-500">Compare how different payers cover the same drug side by side.</p>
           </Link>

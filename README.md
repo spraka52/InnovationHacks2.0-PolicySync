@@ -63,13 +63,14 @@ The value of PolicySync is not just that it can "chat with documents." It create
 
 For a live demo, the cleanest story is:
 
-1. Show the admin dashboard and explain that payer sources are monitored continuously.
-2. Trigger a fetch for a payer and explain that the system only processes artifacts when the content hash changes.
-3. Show the review queue to demonstrate human-in-the-loop governance.
-4. Approve a draft extraction and explain that it becomes queryable only after review.
-5. Open search or Q&A and ask a concrete policy question.
-6. Show cross-payer comparison for a drug.
-7. End with the changelog view to show that changes are tracked over time.
+1. Sign in (search, Q&A, and changelog require Auth0).
+2. Show the **Monitoring** dashboard (`/admin`) and explain that payer sources are monitored continuously.
+3. Trigger **Fetch Now** for a payer and explain that the system only processes artifacts when the content hash changes.
+4. Show the **Review queue** to demonstrate human-in-the-loop governance.
+5. Approve a draft extraction and explain that it becomes queryable only after review.
+6. Open **ISearch** (`/search`): use **Q&A**, **Compare**, and **Recent updates** tabs; ask a concrete policy question.
+7. Show cross-payer comparison for a drug.
+8. End with **Policy changes** (full history at `/changelog`) or the **Recent updates** tab to show tracked changes over time.
 
 If you need a fast narrative in under three minutes, use:
 
@@ -126,7 +127,8 @@ flowchart LR
 #### Next.js app
 
 - Hosts the UI for landing, search, changelog, admin, and review pages
-- Enforces route protection through Auth0 session middleware
+- Enforces route protection through Auth0 session middleware (most product routes require login; see [Authentication and Authorization](#authentication-and-authorization))
+- Top navigation labels: **Monitoring** | **Review queue** | **ISearch** | **Policy changes** (role-dependent). The `/search` page uses tabs: **Q&A**, **Compare**, **Recent updates** (see [`components/viewer/search-page-tabs.tsx`](components/viewer/search-page-tabs.tsx))
 - Exposes server-side API routes for search, Q&A, publishing, audit reads, config, and fetch orchestration
 - Uses the Supabase service role client for trusted database operations
 
@@ -147,8 +149,9 @@ flowchart LR
 
 #### LLM and retrieval layer
 
-- Groq powers HyDE generation and answer synthesis
+- Groq powers HyDE generation and answer synthesis (Q&A)
 - Cerebras is used for contextual chunk summaries when available
+- Google Gemini is used for parts of extraction and changelog classification when `GOOGLE_AI_API_KEY` is set
 - Hugging Face is used as an embedding fallback if the local fetcher embedding endpoint is unavailable
 
 ## Core Workflows
@@ -168,7 +171,7 @@ For each active source:
 
 ### 2. Extraction pipeline
 
-The fetcher pipeline is implemented in [`fetcher/pipeline/graph.py`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/fetcher/pipeline/graph.py).
+The fetcher pipeline is implemented in [`fetcher/pipeline/graph.py`](fetcher/pipeline/graph.py).
 
 Nominal flow:
 
@@ -206,7 +209,7 @@ Approval does the following:
 
 ### 4. Search
 
-Search is handled by [`app/api/search/route.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/app/api/search/route.ts).
+Search is handled by [`app/api/search/route.ts`](app/api/search/route.ts).
 
 Supported modes:
 
@@ -224,7 +227,7 @@ Default search flow:
 
 ### 5. Q&A
 
-Q&A is handled by [`app/api/qa/route.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/app/api/qa/route.ts).
+Q&A is handled by [`app/api/qa/route.ts`](app/api/qa/route.ts).
 
 Flow:
 
@@ -250,6 +253,7 @@ The changelog UI is backed by this data and the `recent_changes` database view.
 ```text
 app/                    Next.js App Router pages and API routes
 components/             UI components for admin, review, search, QA, changelog
+components/viewer/      Search page tabs shell (Q&A, Compare, Recent updates)
 fetcher/                FastAPI service and LangGraph pipeline
 lib/                    Shared server utilities (Auth0, Supabase, embeddings, audit)
 scripts/                Seed, demo, migration, and maintenance scripts
@@ -261,15 +265,17 @@ public/                 Static assets
 
 Important paths:
 
-- [`app/api/search/route.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/app/api/search/route.ts)
-- [`app/api/qa/route.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/app/api/qa/route.ts)
-- [`app/api/fetch-check/route.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/app/api/fetch-check/route.ts)
-- [`app/api/publish/route.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/app/api/publish/route.ts)
-- [`middleware.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/middleware.ts)
-- [`fetcher/main.py`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/fetcher/main.py)
-- [`fetcher/pipeline/graph.py`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/fetcher/pipeline/graph.py)
-- [`supabase/migrations/001_init.sql`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/supabase/migrations/001_init.sql)
-- [`supabase/migrations/003_payer_schema.sql`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/supabase/migrations/003_payer_schema.sql)
+- [`app/api/search/route.ts`](app/api/search/route.ts)
+- [`app/api/qa/route.ts`](app/api/qa/route.ts)
+- [`app/api/fetch-check/route.ts`](app/api/fetch-check/route.ts)
+- [`app/api/publish/route.ts`](app/api/publish/route.ts)
+- [`middleware.ts`](middleware.ts)
+- [`components/viewer/search-page-tabs.tsx`](components/viewer/search-page-tabs.tsx)
+- [`lib/auth0.ts`](lib/auth0.ts)
+- [`fetcher/main.py`](fetcher/main.py)
+- [`fetcher/pipeline/graph.py`](fetcher/pipeline/graph.py)
+- [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql)
+- [`supabase/migrations/003_payer_schema.sql`](supabase/migrations/003_payer_schema.sql)
 
 ## Technology Stack
 
@@ -298,12 +304,13 @@ Important paths:
 
 - Groq for HyDE generation and answer synthesis
 - Cerebras for contextual chunk summarization
+- Google Gemini (optional) for extraction / changelog flows when configured
 - sentence-transformers `all-mpnet-base-v2` embeddings via the fetcher
 - Hugging Face Inference API fallback for embeddings
 
 ## Data Model
 
-The canonical extracted entity is `ExtractedRule`, defined in [`types/index.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/types/index.ts).
+The canonical extracted entity is `ExtractedRule`, defined in [`types/index.ts`](types/index.ts).
 
 It captures:
 
@@ -349,35 +356,29 @@ Question/answer cache with a 24-hour effective TTL in the app logic.
 
 Auth is implemented with `@auth0/nextjs-auth0`.
 
-Roles are read from the custom claim namespace:
+Roles are read from the custom JWT claim namespace **`https://policysync.app/roles`** (see `AUTH0_ROLES_CLAIM` in [`lib/auth0.ts`](lib/auth0.ts)). Configure your Auth0 Action / Rule so the ID token includes this claim (typically mirroring `app_metadata.roles`). The namespace URL does not need to resolve; it is only a claim key.
 
-- `https://rxmonitor.app/roles`
+**Public** (no session) — enforced in [`middleware.ts`](middleware.ts):
 
-Current route model in [`middleware.ts`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/middleware.ts):
+- `/` — landing
+- `/api/auth/*` — Auth0 login, callback, logout
+- `/api/health` — health check for demos and monitoring
 
-- public:
-  - `/`
-  - `/search`
-  - `/changelog`
-  - `/api/search`
-  - `/api/qa`
-  - `/api/changelog`
-  - `/api/health`
-- admin only:
-  - `/admin`
-  - `/review`
-  - `/api/sources`
-  - `/api/fetch-check`
-  - `/api/publish`
-  - `/api/audit`
+**Cron** — `GET /api/fetch-check` accepts `x-cron-secret` matching `CRON_SECRET` and runs without a user session.
+
+**Authenticated** — all other pages and API routes (including `/search`, `/changelog`, `/api/search`, `/api/qa`, `/api/changelog`) require a valid Auth0 session. Unauthenticated browser visits redirect to login; unauthenticated API calls return `401`.
+
+**Admin-only** routes include `/admin`, `/review`, `/api/sources`, `POST` (and non-cron `GET`) `/api/fetch-check`, `/api/publish`, `/api/audit`, and related admin APIs. See `PROTECTED_ROUTES` in middleware.
 
 Notes:
 
-- `viewer` and `admin` are actively enforced.
-- A `reviewer` type still exists in shared types, but current middleware treats `/review` as admin-only.
-- `GET /api/fetch-check` is intended for cron usage and is protected by `x-cron-secret`.
+- **`viewer`** — signed-in read-only access to search, changelog, and analyst APIs.
+- **`admin`** — monitoring dashboard, review queue, fetch orchestration, publish.
+- A **`reviewer`** role exists in shared types; **`/review` is restricted to `admin`** in the current middleware.
 
 ## API Surface
+
+Most JSON APIs below require **Auth0** (see middleware). They return **503** with a clear JSON body if Supabase is not configured (`isSupabaseConfigured()`).
 
 Representative routes:
 
@@ -485,6 +486,7 @@ APP_BASE_URL=http://localhost:3000
 GROQ_API_KEY=
 GROQ_API_KEY_2=
 CEREBRAS_API_KEY=
+GOOGLE_AI_API_KEY=
 HUGGINGFACE_API_KEY=
 ```
 
@@ -501,19 +503,20 @@ TRANSFORMERS_OFFLINE=1
 - `lib/supabase.ts` lazily initializes the service client so builds can succeed before runtime env validation.
 - Embeddings are attempted through the local fetcher first, then Hugging Face as fallback.
 - Groq keys are tried in sequence, with rate-limit fallback across keys and models.
+- Q&A **confidence** is derived from vector retrieval similarity (`QA_SIM_HIGH` / `QA_SIM_MEDIUM` in [`app/api/qa/route.ts`](app/api/qa/route.ts)), not from the LLM’s prose.
 
 ## Database and Seeding
 
 Schema is defined in:
 
-- [`supabase/migrations/001_init.sql`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/supabase/migrations/001_init.sql)
-- [`supabase/migrations/002_seed.sql`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/supabase/migrations/002_seed.sql)
-- [`supabase/migrations/003_payer_schema.sql`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/supabase/migrations/003_payer_schema.sql)
-- [`supabase/migrations/004_qa_cache.sql`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/supabase/migrations/004_qa_cache.sql)
+- [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql)
+- [`supabase/migrations/002_seed.sql`](supabase/migrations/002_seed.sql)
+- [`supabase/migrations/003_payer_schema.sql`](supabase/migrations/003_payer_schema.sql)
+- [`supabase/migrations/004_qa_cache.sql`](supabase/migrations/004_qa_cache.sql)
 
 ### Seed data
 
-Sample seed artifacts live in [`seed/`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/seed).
+Sample seed artifacts live in [`seed/`](seed).
 
 The repository includes real sample artifacts for:
 
@@ -545,11 +548,11 @@ This script:
 
 Available helper scripts:
 
-- [`scripts/setup_demo.py`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/scripts/setup_demo.py)
-- [`scripts/reset_demo.py`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/scripts/reset_demo.py)
-- [`scripts/republish.py`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/scripts/republish.py)
-- [`scripts/backup_db.py`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/scripts/backup_db.py)
-- [`scripts/run_migration.py`](/Users/uma/Desktop/InnovationHacks2.0-PolicySync/scripts/run_migration.py)
+- [`scripts/setup_demo.py`](scripts/setup_demo.py)
+- [`scripts/reset_demo.py`](scripts/reset_demo.py)
+- [`scripts/republish.py`](scripts/republish.py)
+- [`scripts/backup_db.py`](scripts/backup_db.py)
+- [`scripts/run_migration.py`](scripts/run_migration.py)
 
 ## Operational Notes
 
@@ -588,9 +591,9 @@ That separation is what allows:
 
 - The project depends on several third-party services and secrets; it is not runnable as a purely static app.
 - The fetcher and app are tightly coupled through shared environment configuration.
-- Some historical naming still uses `RxMonitor` even though the product is presented as `PolicySync`.
-- The type layer still contains a `reviewer` role, but the active route protection model is effectively admin/viewer.
-- The repository currently contains untracked presentation helper files that are not part of the app itself.
+- The npm package name is `policysync`; Python services and branding use **PolicySync** (legacy `RxMonitor` strings may still appear in older backups or comments).
+- The type layer still contains a `reviewer` role, but **`/review` is admin-only** in middleware.
+- Optional local folders (e.g. backups, IDE metadata) may be untracked and are not required to run the app.
 
 ## License
 

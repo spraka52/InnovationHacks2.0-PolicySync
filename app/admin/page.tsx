@@ -1,16 +1,20 @@
-import { auth0 } from "@/lib/auth0";
+import type { Metadata } from "next";
+import { auth0, AUTH0_ROLES_CLAIM } from "@/lib/auth0";
 import { getServiceClient } from "@/lib/supabase";
 import { PayerDashboard } from "@/components/admin/payer-dashboard";
 import { redirect } from "next/navigation";
 import type { PayerConfig } from "@/types";
 
-const ROLE_NAMESPACE = "https://rxmonitor.app/roles";
+export const metadata: Metadata = {
+  title: "Payer Monitoring | PolicySync",
+  description: "Manage payer sources, trigger policy fetches, and monitor extraction status.",
+};
 
 export default async function AdminPage() {
   const session = await auth0.getSession();
   if (!session) redirect("/api/auth/login");
 
-  const roles: string[] = (session.user[ROLE_NAMESPACE] as string[]) ?? [];
+  const roles: string[] = (session.user[AUTH0_ROLES_CLAIM] as string[]) ?? [];
   if (!roles.includes("admin")) redirect("/");
 
   const db = getServiceClient();

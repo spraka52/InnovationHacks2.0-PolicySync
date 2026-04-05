@@ -21,10 +21,10 @@ export function AppNav({ roles, userName, isAuthenticated }: AppNavProps) {
   const isAdmin = roles.includes("admin");
 
   const navItems = [
-    { href: "/admin", label: "Admin", show: isAdmin },
-    { href: "/review", label: "Review", show: isAdmin },
-    { href: "/search", label: "Search", show: true },
-    { href: "/changelog", label: "Changes", show: true },
+    { href: "/admin", label: "Monitoring", show: isAdmin },
+    { href: "/review", label: "Review queue", show: isAdmin },
+    { href: "/search", label: "ISearch", show: isAuthenticated },
+    { href: "/changelog", label: "Policy changes", show: isAuthenticated },
   ].filter((item) => item.show);
 
   // Close menu when clicking outside

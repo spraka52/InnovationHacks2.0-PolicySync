@@ -3,13 +3,11 @@ import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AppNav } from "@/components/layout/app-nav";
-import { auth0 } from "@/lib/auth0";
+import { auth0, AUTH0_ROLES_CLAIM } from "@/lib/auth0";
 import type { UserRole } from "@/types";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
-
-const ROLE_NAMESPACE = "https://rxmonitor.app/roles";
 
 export const metadata: Metadata = {
   title: "PolicySync | Clinical Policy Intelligence",
@@ -25,7 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const session = await auth0.getSession();
     if (session?.user) {
       isAuthenticated = true;
-      roles = (session.user[ROLE_NAMESPACE] as UserRole[]) ?? [];
+      roles = (session.user[AUTH0_ROLES_CLAIM] as UserRole[]) ?? [];
       userName = session.user.name ?? session.user.email ?? null;
     }
   } catch {

@@ -1,5 +1,5 @@
 from __future__ import annotations
-"""LangGraph state schema for the RxMonitor pipeline."""
+"""LangGraph state schema for the PolicySync pipeline."""
 
 from typing import Any, TypedDict
 

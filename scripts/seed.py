@@ -1,11 +1,11 @@
 """
-RxMonitor Seed Script
+PolicySync Seed Script
 
 Uploads the 6 provided sample policy PDFs/DOCX to Supabase Storage,
 runs each through the full extraction pipeline, auto-approves, and publishes.
 
 Usage:
-  cd rxmonitor/
+  cd PolicySync/
   python scripts/seed.py
 
 Requirements:
@@ -212,7 +212,7 @@ async def seed_file(filepath: Path, payer_name: str, payer_format: str):
     db.table("audit_events").insert({
         "action": "rule_published",
         "user_id": "seed_script",
-        "user_email": "seed@rxmonitor.app",
+        "user_email": "seed@policysync.app",
         "entity_type": "published_rule",
         "entity_id": published_ids[0] if published_ids else version_id,
         "metadata": {
@@ -333,13 +333,13 @@ async def _inline_extract_and_draft(
 
 
 async def main():
-    print("RxMonitor Seed Script")
+    print("PolicySync Seed Script")
     print(f"Seed directory: {SEED_DIR}")
     print(f"Supabase URL: {SUPABASE_URL[:40]}...")
 
     if not SEED_DIR.exists():
         print(f"\n❌ Seed directory not found: {SEED_DIR}")
-        print("Please copy the 6 sample policy files to rxmonitor/seed/:")
+        print("Please copy the 6 sample policy files to PolicySync/seed/:")
         for fname, payer, fmt in SEED_FILES:
             print(f"  - {fname}")
         sys.exit(1)

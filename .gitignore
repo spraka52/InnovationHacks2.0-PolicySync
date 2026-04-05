@@ -46,3 +46,12 @@ fetcher/.venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
+
+# Local / agent docs — keep out of remote (see team policy)
+AI.md
+AGENTS.md
+CLAUDE.md
+
+.cursor/
+.claude/
+backup/

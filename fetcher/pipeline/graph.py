@@ -1,5 +1,5 @@
 """
-LangGraph StateGraph definition for the RxMonitor pipeline.
+LangGraph StateGraph definition for the PolicySync pipeline.
 
 Graph flow:
   chunker → embedder → [route_by_payer_format] → payer-specific extractor → evaluator

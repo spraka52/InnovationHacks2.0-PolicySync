@@ -1,15 +1,13 @@
-import { auth0 } from "@/lib/auth0";
+import { auth0, AUTH0_ROLES_CLAIM } from "@/lib/auth0";
 import { getServiceClient } from "@/lib/supabase";
 import { DraftsTable } from "@/components/review/drafts-table";
 import { redirect } from "next/navigation";
-
-const ROLE_NAMESPACE = "https://rxmonitor.app/roles";
 
 export default async function ReviewPage() {
   const session = await auth0.getSession();
   if (!session) redirect("/api/auth/login");
 
-  const roles: string[] = (session.user[ROLE_NAMESPACE] as string[]) ?? [];
+  const roles: string[] = (session.user[AUTH0_ROLES_CLAIM] as string[]) ?? [];
   if (!roles.includes("admin")) redirect("/");
 
   const db = getServiceClient();
