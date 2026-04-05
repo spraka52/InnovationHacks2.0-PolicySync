@@ -9,6 +9,7 @@ type AuditAction =
   | "eval_failed"
   | "rule_published"
   | "rule_rejected"
+  | "draft_deleted"
   | "config_updated";
 
 interface AuditParams {

@@ -127,9 +127,16 @@ function DiffTable({ entry }: { entry: ChangelogEntry }) {
                   <td className="px-4 py-2.5 align-top">
                     <div className="flex items-center gap-1.5">
                       {row.type === "clinical"
-                        ? <AlertTriangle className="h-3 w-3 text-amber-500 flex-shrink-0 cursor-help" title="Clinical change — affects coverage criteria, PA requirements, or formulary tier. May trigger rebate renegotiation." />
-                        : <Info className="h-3 w-3 text-blue-400 flex-shrink-0 cursor-help" title="Cosmetic change — formatting, effective date, or wording update only. No impact on coverage criteria." />
-                      }
+                        ? (
+                          <span title="Clinical change — affects coverage criteria, PA requirements, or formulary tier. May trigger rebate renegotiation." className="inline-flex">
+                            <AlertTriangle className="h-3 w-3 text-amber-500 flex-shrink-0 cursor-help" />
+                          </span>
+                        )
+                        : (
+                          <span title="Cosmetic change — formatting, effective date, or wording update only. No impact on coverage criteria." className="inline-flex">
+                            <Info className="h-3 w-3 text-blue-400 flex-shrink-0 cursor-help" />
+                          </span>
+                        )}
                       <span className="text-xs font-semibold text-slate-700">
                         {formatFieldName(row.field)}
                       </span>
