@@ -10,11 +10,27 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceClient } from "@/lib/supabase";
+import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import { hydeEmbed } from "@/lib/embeddings";
 import type { DrugComparison, SearchResult, ExtractedRule } from "@/types";
 
+const CONFIG_ERROR = {
+  error:
+    "Database not configured. In Vercel: Project → Settings → Environment Variables, set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (same values as local .env.local), then redeploy.",
+  code: "SUPABASE_ENV_MISSING" as const,
+};
+
 export async function GET(req: NextRequest) {
+  try {
+    return await handleSearch(req);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[api/search]", msg);
+    return NextResponse.json({ error: "Search failed", detail: msg }, { status: 500 });
+  }
+}
+
+async function handleSearch(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const query     = searchParams.get("q") ?? "";
   const payerName = searchParams.get("payer_name") ?? null;
@@ -22,6 +38,10 @@ export async function GET(req: NextRequest) {
   const mode      = searchParams.get("mode") ?? "default";    // default | compare | versions
   const sourcePayer = searchParams.get("source_payer") ?? null; // for versions mode
   const limit     = Math.min(Number(searchParams.get("limit") ?? "20"), 50);
+
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(CONFIG_ERROR, { status: 503 });
+  }
 
   const db = getServiceClient();
 

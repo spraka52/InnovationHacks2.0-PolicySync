@@ -13,7 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceClient } from "@/lib/supabase";
+import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import type { ExtractedRule, ChangeSummary, ChangelogEntry } from "@/types";
 
 const GOOGLE_AI_KEY = process.env.GOOGLE_AI_API_KEY ?? "";
@@ -48,6 +48,19 @@ const COSMETIC_FIELDS: (keyof ExtractedRule)[] = [
 // ─── GET: fetch recent changelog entries ──────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      {
+        error:
+          "Database not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel Environment Variables, then redeploy.",
+        code: "SUPABASE_ENV_MISSING",
+        entries: [],
+        total: 0,
+      },
+      { status: 503 }
+    );
+  }
+
   const { searchParams } = req.nextUrl;
   const payerName = searchParams.get("payer_name");
   const drugName = searchParams.get("drug_name");

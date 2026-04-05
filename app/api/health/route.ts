@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServiceClient } from "@/lib/supabase";
+import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 
 const GROQ_KEYS = [
   { label: "groq_key_1", key: process.env.GROQ_API_KEY ?? "" },
@@ -17,6 +17,13 @@ const FETCHER_URL = process.env.FETCHER_SERVICE_URL || "http://localhost:8000";
 
 async function checkSupabase(): Promise<{ status: "ok" | "error"; latency_ms: number; error?: string }> {
   const start = Date.now();
+  if (!isSupabaseConfigured()) {
+    return {
+      status: "error",
+      latency_ms: 0,
+      error: "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (add in Vercel → Settings → Environment Variables)",
+    };
+  }
   try {
     const db = getServiceClient();
     const { error } = await db.from("sources").select("id").limit(1);
@@ -27,11 +34,19 @@ async function checkSupabase(): Promise<{ status: "ok" | "error"; latency_ms: nu
   }
 }
 
+function abortAfterMs(ms: number): AbortSignal {
+  const AS = AbortSignal as unknown as { timeout?: (n: number) => AbortSignal };
+  if (typeof AS.timeout === "function") return AS.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
 async function checkGroqKey(label: string, apiKey: string): Promise<{ status: "ok" | "error" | "rate_limited"; label: string }> {
   try {
     const res = await fetch("https://api.groq.com/openai/v1/models", {
       headers: { Authorization: `Bearer ${apiKey}` },
-      signal: AbortSignal.timeout(5000),
+      signal: abortAfterMs(5000),
     });
     if (res.status === 429) return { status: "rate_limited", label };
     if (!res.ok) return { status: "error", label };
@@ -45,7 +60,7 @@ async function checkFetcher(): Promise<{ status: "ok" | "error" | "offline"; lat
   const start = Date.now();
   try {
     const res = await fetch(`${FETCHER_URL}/health`, {
-      signal: AbortSignal.timeout(4000),
+      signal: abortAfterMs(4000),
     });
     if (!res.ok) return { status: "error", latency_ms: Date.now() - start };
     return { status: "ok", latency_ms: Date.now() - start };
@@ -55,6 +70,7 @@ async function checkFetcher(): Promise<{ status: "ok" | "error" | "offline"; lat
 }
 
 async function getQACacheStats(): Promise<{ hits_today: number; entries_total: number } | null> {
+  if (!isSupabaseConfigured()) return null;
   try {
     const db = getServiceClient();
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

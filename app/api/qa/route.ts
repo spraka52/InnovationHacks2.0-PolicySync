@@ -18,7 +18,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
-import { getServiceClient } from "@/lib/supabase";
+import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import { hydeEmbed } from "@/lib/embeddings";
 import type { QAResponse, PublishedRule } from "@/types";
 
@@ -223,6 +223,17 @@ export async function POST(req: NextRequest) {
   const question = (body.question ?? "").trim();
   if (!question) {
     return NextResponse.json({ error: "question is required" }, { status: 400 });
+  }
+
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      {
+        error:
+          "Database not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel Environment Variables, then redeploy.",
+        code: "SUPABASE_ENV_MISSING",
+      },
+      { status: 503 }
+    );
   }
 
   // ── Cache check — return instantly if we've answered this before ──────────

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -306,6 +307,12 @@ export function SearchInterface() {
       const params = new URLSearchParams({ q: query, mode: "compare" });
       const res = await fetch(`/api/search?${params}`);
       const data = await res.json();
+      if (!res.ok) {
+        const msg = typeof data.error === "string" ? data.error : "Search failed";
+        toast.error(msg, { duration: 8000 });
+        setComparison(null);
+        return;
+      }
       setComparison(data.comparison ?? null);
     } finally {
       setLoading(false);

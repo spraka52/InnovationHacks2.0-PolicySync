@@ -167,18 +167,26 @@ function DiffTable({ entry }: { entry: ChangelogEntry }) {
 export function ChangeDiff({ compact = false }: { compact?: boolean }) {
   const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [onlyClinical, setOnlyClinical] = useState(false);
 
   async function load() {
     setLoading(true);
+    setLoadError(null);
     try {
       const params = new URLSearchParams({ limit: compact ? "5" : "50" });
       if (onlyClinical) params.set("only_clinical", "true");
       const res = await fetch(`/api/changelog?${params}`);
       const data = await res.json();
+      if (!res.ok) {
+        setEntries([]);
+        setLoadError(typeof data.error === "string" ? data.error : "Could not load changes");
+        return;
+      }
       setEntries(data.entries ?? []);
     } catch {
       setEntries([]);
+      setLoadError("Network error loading changes");
     } finally {
       setLoading(false);
     }
@@ -189,6 +197,8 @@ export function ChangeDiff({ compact = false }: { compact?: boolean }) {
   // ── Compact strip (Search > Policy Changes tab) ───────────────────────────
   if (compact) {
     if (loading) return <div className="text-sm text-slate-400 py-2">Loading changes...</div>;
+    if (loadError)
+      return <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{loadError}</div>;
     if (entries.length === 0)
       return <div className="text-sm text-slate-400 py-2">No recent changes detected</div>;
     return (
@@ -260,6 +270,10 @@ export function ChangeDiff({ compact = false }: { compact?: boolean }) {
 
       {loading ? (
         <div className="text-sm text-slate-400 py-8 text-center">Loading changelog...</div>
+      ) : loadError ? (
+        <div className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 max-w-xl">
+          {loadError}
+        </div>
       ) : entries.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
           <p>No policy changes detected yet.</p>

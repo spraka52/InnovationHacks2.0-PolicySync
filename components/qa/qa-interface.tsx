@@ -202,9 +202,16 @@ export function QAInterface() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text }),
       });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const data: QAResponse = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", text: data.answer, response: data }]);
+      const data = await res.json();
+      if (!res.ok) {
+        const msg =
+          typeof data.error === "string"
+            ? data.error
+            : `Request failed (${res.status})`;
+        throw new Error(msg);
+      }
+      const qa = data as QAResponse;
+      setMessages((prev) => [...prev, { role: "assistant", text: qa.answer, response: qa }]);
     } catch (e) {
       setMessages((prev) => [
         ...prev,

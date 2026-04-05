@@ -12,6 +12,14 @@ const GROQ_KEYS = [
   process.env.GROQ_API_KEY_2 ?? "",
 ].filter(Boolean);
 
+function abortAfterMs(ms: number): AbortSignal {
+  const AS = AbortSignal as unknown as { timeout?: (n: number) => AbortSignal };
+  if (typeof AS.timeout === "function") return AS.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
 // HuggingFace free inference API — same model as local fetcher (768-dim)
 async function embedViaHuggingFace(text: string): Promise<number[]> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -40,7 +48,7 @@ export async function embedText(text: string): Promise<number[]> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(5000), // 5s timeout so fallback kicks in quickly
+      signal: abortAfterMs(5000),
     });
 
     if (res.ok) {
