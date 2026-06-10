@@ -595,6 +595,3 @@ That separation is what allows:
 - The type layer still contains a `reviewer` role, but **`/review` is admin-only** in middleware.
 - Optional local folders (e.g. backups, IDE metadata) may be untracked and are not required to run the app.
 
-## License
-
-No license file is currently included in this repository. Add one before distributing outside the team or open-sourcing the project.
